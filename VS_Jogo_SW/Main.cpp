@@ -2,6 +2,8 @@
 	Gustavo Voltani von Atzingen agosto 2016
 
 	Jogo para aprendizado do allegro e c++
+
+	comentarui de teste 
 */
 
 // Coisas do c++
@@ -164,6 +166,8 @@ void jogo_pong()
 			al_draw_bitmap(bola, bola_x, bola_y, 0);
 			al_draw_bitmap(barra, barra_x, barra_y, 0);
 			al_flip_display();
+
+
 			/*
 			al_draw_scaled_bitmap(loaded_bmp,
 			0, 0,                                // source origin
