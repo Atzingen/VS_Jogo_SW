@@ -13,6 +13,7 @@
 #include <vector>
 #include <time.h>
 #include "string"
+#include <math.h>
 
 // Includes do alegro
 #include <allegro5/allegro.h>
@@ -23,7 +24,7 @@
 #include <allegro5/allegro_audio.h>
 #include <allegro5/allegro_acodec.h>
 
-using namespace std; // bizarro
+using namespace std;
 
 // Minhas funções e macros
 void escreve_texto_opcoes(vector<string> opcoes, int escolhido);
@@ -86,29 +87,36 @@ void jogo()
 
 void jogo_pong()
 {
-	float raio_bola = al_get_bitmap_width(bola);
-	float largura_barra = al_get_bitmap_width(barra);
-	float altura_barra = al_get_bitmap_height(barra);
+	float bola_diametro_largura = al_get_bitmap_width(bola);
+	float bola_diametro_altura = al_get_bitmap_height(bola);
+	float barra_largura_original = al_get_bitmap_width(barra);
+	float barra_altura_original = al_get_bitmap_height(barra);
+	float bola_raio = A / 10;
+	float barra_largura = L / 50.0;
+	float barra_altura = L / 5.0;
 	bool desenhe_tela = false;
-	int i = 0;
-	float vx = 3.0*rand() / RAND_MAX + 2;
-	float vy = 3.0*rand() / RAND_MAX + 2;
-	fprintf(stderr, "vx = %f , vy= %f \n", vx, vy);
-	int incremento = 1;
-	float bola_x = 50;
-	float bola_y = 0;
-	float barra_x = largura_barra;
-	float barra_y = (A - altura_barra)/2;
+	float vx = rand() / RAND_MAX + 4.5;   // |v| = 10
+	float vy = sqrt(100 - vx*vx);
+	float barra_velocidade = 6;
+	float bola_x = L / 2.0;
+	float bola_y = A / 2.0;
+	float barra_x = L / 30.0;
+	float barra_y = A/2 - (barra_altura/2);
 	bool cima = false;
 	bool baixo = false;
-	
+
 	fila_allegro(1);
 	al_start_timer(timer);
+	int pontos = 0;
+	int frame = 0;
+	int fps_tela = 0;
+	int tempo = al_get_time();
 	bool jogando = true;
+	int c = 0;				// cor da tela (fundo)
 
 	while (jogando)
 	{
-		fila_allegro(2);	
+		al_wait_for_event(fila_eventos, &evento);
 		if (evento.type == ALLEGRO_EVENT_KEY_DOWN) // Alguma tecla apertada
 		{
 			switch (evento.keyboard.keycode)
@@ -118,6 +126,8 @@ void jogo_pong()
 				break;
 			case ALLEGRO_KEY_DOWN:
 				baixo = true;
+				break;
+			default:
 				break;
 			}
 		}
@@ -131,53 +141,70 @@ void jogo_pong()
 			case ALLEGRO_KEY_DOWN:
 				baixo = false;
 				break;
+			default:
+				break;
 			}
 		}
 		if ( cima && barra_y > 0)
-			barra_y -= 3;
-		if ( baixo && barra_y < A-altura_barra)
-			barra_y += 3;
+			barra_y -= barra_velocidade;
+		if ( baixo && barra_y + barra_altura < A)
+			barra_y += barra_velocidade;
 		if (evento.type == ALLEGRO_EVENT_TIMER)
 			desenhe_tela = true;
 		if ( desenhe_tela && al_is_event_queue_empty(fila_eventos))
 		{
 			desenhe_tela = false;
-			i += incremento;
 			bola_x += vx;
 			bola_y += vy;
-			if (i > 245 || i < 1)
-				incremento = -1 * incremento;
-			if (bola_x > L - raio_bola)			// condicao lateral direita (parede)
-				vx = -1.05 * vx;
-			if (bola_y > A - raio_bola || bola_y < 0) // Paredes superiores e inferiores
-				vy = -1 * vy;
-			if (bola_x < barra_x + largura_barra )	// caso o eixo x da bolinha se encontre com a linha da barra
+			if (bola_x + (2 * bola_raio) > L)						// condicao lateral direita (parede)
 			{
-				if ((bola_y + raio_bola) > barra_y && (bola_y + raio_bola ) < (barra_y + altura_barra))// entre as 2 barras
+				vx = -1.0 * vx;
+				pontos++;
+				if (pontos % 3 == 0)
 				{
-					vx = -1 * vx;
-				}			
-				else
-				{
-					jogando = false;
-				}			
+					vx = 1.2*vx;
+					bola_raio = bola_raio / 1.2;
+					barra_altura = barra_altura / 1.2;
+					barra_velocidade = 1.2*barra_velocidade;
+					c += 20;
+					if (c > 250)		// fim do jogo
+						break;
+				}
 			}
-			al_clear_to_color(al_map_rgb(255-i, 0, i));
-			al_draw_bitmap(bola, bola_x, bola_y, 0);
-			al_draw_bitmap(barra, barra_x, barra_y, 0);
+			if ( bola_y + bola_raio > A || bola_y < 0)			// Paredes superiores e inferiores
+				vy = -1 * vy;
+			if ( bola_x < barra_x + barra_largura)					// caso o eixo x da bolinha se encontre com a linha da barra
+			{
+				if ( bola_y + bola_raio > barra_y && bola_y + bola_raio < barra_altura + barra_y )// entre as 2 barras
+					vx = -1 * vx;		
+				else
+					jogando = false;		
+			}
+			if (al_get_time() - tempo > 1)
+			{
+				tempo = al_get_time();
+				fps_tela = frame;
+				frame = 0;
+			}
+			al_clear_to_color(al_map_rgb(255 - c, 0, c));
+			al_draw_textf(fonte, al_map_rgb(255, 255, 0), 4.5*L/6, 4*A/6.0, ALLEGRO_ALIGN_LEFT, "fase 1:  %i %%", pontos*4);
+			al_draw_textf(fonte, al_map_rgb(255, 255, 0), 4.5*L/6, 4.5*A/6.0, ALLEGRO_ALIGN_LEFT, "pontos: %i", pontos);
+			al_draw_textf(fonte, al_map_rgb(255, 255, 0), 4.5*L/6, 5*A/6.0,ALLEGRO_ALIGN_LEFT, "tempo: %i", tempo);
+			al_draw_textf(fonte, al_map_rgb(255, 255, 0), 4.5*L/6, 5.5*A/6.0, ALLEGRO_ALIGN_LEFT, "%ifps", fps_tela);
+			al_draw_scaled_bitmap(bola, 
+									0, 0,
+									bola_diametro_largura, bola_diametro_altura, 
+									bola_x, bola_y,
+									bola_raio, bola_raio,
+									0);
+			al_draw_scaled_bitmap(barra,
+									0, 0,							// source origin ????   
+									barra_largura_original, barra_altura_original,	// source width, source height
+									barra_x, barra_y,				// target origin
+									barra_largura, barra_altura,	// target dimensions
+									0);								// flags
 			al_flip_display();
-
-
-			/*
-			al_draw_scaled_bitmap(loaded_bmp,
-			0, 0,                                // source origin
-			al_get_bitmap_width(loaded_bmp),     // source width
-			al_get_bitmap_height(loaded_bmp),    // source height
-			0, 0,                                // target origin
-			w, h,                                // target dimensions
-			0                                    // flags
-			);
-			*/
+			frame++;
 		}
 		if (tem_eventos)
 			if (evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE) break;
@@ -207,7 +234,7 @@ void escreve_texto_opcoes(vector<string> opcoes,int escolhido)
 
 void inicio_setup()
 {
-	std::vector<std::string> opcoes = { "Iniciar", "Configurar","Pong","Login"};
+	std::vector<std::string> opcoes = { "Iniciar", "Configurar","Pong","Login","fechar"};
 	int numero_opcoes = opcoes.size();
 	fprintf(stderr, "n: %i", numero_opcoes);
 	escreve_texto_opcoes(opcoes,1);
@@ -267,6 +294,8 @@ void inicio_setup()
 			break;
 		case 4:
 			tela_login();
+			break;
+		default:
 			break;
 		}
 	}
