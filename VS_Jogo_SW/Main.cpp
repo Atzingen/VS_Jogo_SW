@@ -52,6 +52,10 @@ ALLEGRO_BITMAP *barra = NULL;
 ALLEGRO_AUDIO_STREAM *musica = NULL;		// TODO
 ALLEGRO_SAMPLE *som_setup;
 ALLEGRO_SAMPLE *som_fim;
+ALLEGRO_SAMPLE *som_perdeu;
+ALLEGRO_SAMPLE *som_bolinha_parede;
+ALLEGRO_SAMPLE *som_bolinha_barra;
+ALLEGRO_SAMPLE *som_aplauso;
 ALLEGRO_SAMPLE *som_abertura;
 ALLEGRO_SAMPLE_ID id;
 ALLEGRO_FONT *fonte = NULL;
@@ -60,7 +64,7 @@ ALLEGRO_TIMER *timer = NULL;
 // TODO - definir as cores -> ALLEGRO_COLOR amarelo = al_map_rgb(255,255,0); ???
 int tem_eventos;
 float tempo_abertura = 10.0;
-float tempo_final = 10.0;
+float tempo_final = 3.0;
 
 int main(int argc, char **argv)
 {
@@ -69,7 +73,7 @@ int main(int argc, char **argv)
 	{
 		cutscene(1);
 		inicio_setup();
-		cutscene(2);
+		cutscene(3);
 	}
 	the_end_allegro();
 	return 0;
@@ -82,7 +86,6 @@ void tela_login()
 
 void jogo()
 {
-
 }
 
 void jogo_pong()
@@ -156,12 +159,14 @@ void jogo_pong()
 			desenhe_tela = false;
 			bola_x += vx;
 			bola_y += vy;
-			if (bola_x + (2 * bola_raio) > L)						// condicao lateral direita (parede)
+			if (bola_x + bola_raio > L)						// condicao lateral direita (parede)
 			{
+				al_play_sample(som_bolinha_parede, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, &id);
 				vx = -1.0 * vx;
 				pontos++;
 				if (pontos % 3 == 0)
 				{
+					al_play_sample(som_aplauso, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, &id);
 					vx = 1.2*vx;
 					bola_raio = bola_raio / 1.2;
 					barra_altura = barra_altura / 1.2;
@@ -171,12 +176,18 @@ void jogo_pong()
 						break;
 				}
 			}
-			if ( bola_y + bola_raio > A || bola_y < 0)			// Paredes superiores e inferiores
+			if (bola_y + bola_raio > A || bola_y < 0)			// Paredes superiores e inferiores
+			{
 				vy = -1 * vy;
+				al_play_sample(som_bolinha_parede, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, &id);
+			}
 			if ( bola_x < barra_x + barra_largura)					// caso o eixo x da bolinha se encontre com a linha da barra
 			{
-				if ( bola_y + bola_raio > barra_y && bola_y + bola_raio < barra_altura + barra_y )// entre as 2 barras
-					vx = -1 * vx;		
+				if (bola_y + bola_raio > barra_y && bola_y + bola_raio < barra_altura + barra_y)// entre as 2 barras
+				{
+					vx = -1 * vx;
+					al_play_sample(som_bolinha_barra, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, &id);
+				}
 				else
 					jogando = false;		
 			}
@@ -291,6 +302,8 @@ void inicio_setup()
 			break;
 		case 3:
 			jogo_pong();
+			cutscene(2);
+			al_stop_sample(&id);
 			break;
 		case 4:
 			tela_login();
@@ -298,6 +311,7 @@ void inicio_setup()
 		default:
 			break;
 		}
+		inicio_setup();
 	}
 	al_stop_sample(&id);
 }
@@ -314,11 +328,17 @@ void cutscene(int tipo)
 		imagem = al_load_bitmap("imagens/vader01.JPG");
 		tempo_total = tempo_abertura;
 	}
-	else if (tipo == 2)// fim de jogo
+	else if (tipo == 2)// fim de jogo - perdeu (pong)
 	{
-		al_play_sample(som_fim, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, &id);
+		al_play_sample(som_perdeu, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, &id);
 		imagem = al_load_bitmap("imagens/lose01.JPG");
 		tempo_total = tempo_final;
+	}
+	else if (tipo == 3)// fechando o programa
+	{
+		al_play_sample(som_fim, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, &id);
+		imagem = al_load_bitmap("imagens/lose02.JPG");
+		tempo_total = 2*tempo_final;
 	}
 	else
 	{
@@ -403,29 +423,57 @@ int inicializar_allegro()
 		return -1;
 	}
 
-	if (!al_reserve_samples(3)) {
+	if (!al_reserve_samples(7)) {
 		fprintf(stderr, "failed to reserve samples!\n");
+		return -1;
+	}
+
+	som_aplauso = al_load_sample("sons/aplauso.ogg");
+
+	if (!som_aplauso) {
+		printf("Audio clip sample not loaded! aplauso.ogg\n");
+		return -1;
+	}
+
+	som_perdeu = al_load_sample("sons/youlose.ogg");
+
+	if (!som_perdeu) {
+		printf("Audio clip sample not loaded! perdeu.wav\n");
+		return -1;
+	}
+
+	som_bolinha_parede = al_load_sample("sons/pinga_parede.wav");
+
+	if (!som_bolinha_parede) {
+		printf("Audio clip sample not loaded! pinga_parede.wav \n");
+		return -1;
+	}
+
+	som_bolinha_barra = al_load_sample("sons/pinga_barra.wav");
+
+	if (!som_bolinha_barra) {
+		printf("Audio clip sample not loaded! pinga_barra.wav\n");
 		return -1;
 	}
 
 	som_setup = al_load_sample("sons/respira.wav");
 
 	if (!som_setup) {
-		printf("Audio clip sample not loaded!\n");
+		printf("Audio clip sample not loaded! respira.wav\n");
 		return -1;
 	}
 
 	som_fim = al_load_sample("sons/starwars.wav");
 
 	if (!som_fim) {
-		printf("Audio clip sample not loaded!\n");
+		printf("Audio clip sample not loaded! starwars.wav\n");
 		return -1;
 	}
 
 	som_abertura = al_load_sample("sons/imperial.wav");
 
 	if (!som_abertura) {
-		printf("Audio clip sample not loaded!\n");
+		printf("Audio clip sample not loaded! imperial.wav \n");
 		return -1;
 	}
 
@@ -480,5 +528,6 @@ void the_end_allegro()
 	al_destroy_sample(som_fim);
 	al_destroy_display(janela);
 	al_destroy_event_queue(fila_eventos);
+	//exit;				// TODO - como fecha o programa ????
 }
 
