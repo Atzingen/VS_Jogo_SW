@@ -6,6 +6,7 @@
 	comentarui de teste 
 */
 
+
 // Coisas do c++
 #include "stdafx.h"
 #include <iostream>
@@ -14,6 +15,10 @@
 #include <time.h>
 #include "string"
 #include <math.h>
+
+// serial
+//#define BOOL bool;
+//#include "Serial.h"
 
 // Includes do alegro
 #include <allegro5/allegro.h>
