@@ -16,10 +16,6 @@
 #include "string"
 #include <math.h>
 
-// serial
-//#define BOOL bool;
-//#include "Serial.h"
-
 // Includes do alegro
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_font.h>
@@ -54,6 +50,8 @@ ALLEGRO_TIMEOUT timeout;
 ALLEGRO_BITMAP *imagem = NULL;
 ALLEGRO_BITMAP *bola = NULL;
 ALLEGRO_BITMAP *barra = NULL;
+ALLEGRO_BITMAP *sabre = NULL;
+ALLEGRO_BITMAP *remote = NULL;
 ALLEGRO_AUDIO_STREAM *musica = NULL;		// TODO
 ALLEGRO_SAMPLE *som_setup;
 ALLEGRO_SAMPLE *som_fim;
@@ -91,6 +89,106 @@ void tela_login()
 
 void jogo()
 {
+	float remote_largura = al_get_bitmap_width(remote);
+	float remote_altura = al_get_bitmap_height(remote);
+	float sabre_altura = al_get_bitmap_height(sabre);
+	float sabre_largura = al_get_bitmap_width(sabre);
+	float sabre_x = 2.0*L / 3.0;
+	float sabre_y = A / 2.0;
+	float remote_x = A / 2.0;
+	float remote_y = A / 2.0;
+	float sabre_theta = 90.0;
+	float sabre_phi = 0.0;
+
+	bool cima = false;
+	bool baixo = false;
+	bool esquerda = false;
+	bool direita = false;
+	bool desenhe_tela = false;
+	int pontos = 0;
+	int frame = 0;
+	int fps_tela = 0;
+	int tempo = al_get_time();
+
+	imagem = al_load_bitmap("imagens/dagobah.jpeg");
+
+	fila_allegro(1);
+	al_start_timer(timer);
+
+	bool jogando = true;
+	while (jogando)
+	{
+		al_wait_for_event(fila_eventos, &evento);
+		if (tem_eventos)
+			if (evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE) break;
+		if (evento.type == ALLEGRO_EVENT_KEY_DOWN) // Alguma tecla apertada
+		{
+			switch (evento.keyboard.keycode)
+			{
+			case ALLEGRO_KEY_UP:
+				cima = true;
+				break;
+			case ALLEGRO_KEY_DOWN:
+				baixo = true;
+				break;
+			default:
+				break;
+			}
+		}
+		if (evento.type == ALLEGRO_EVENT_KEY_UP) // Alguma tecla apertada
+		{
+			switch (evento.keyboard.keycode)
+			{
+			case ALLEGRO_KEY_UP:
+				cima = false;
+				break;
+			case ALLEGRO_KEY_DOWN:
+				baixo = false;
+				break;
+			default:
+				break;
+			}
+		}
+		if (evento.type == ALLEGRO_EVENT_TIMER)
+			desenhe_tela = true;
+		if (cima)
+			sabre_theta += 1;
+		if (baixo)
+			sabre_theta -= 1;
+		if (desenhe_tela && al_is_event_queue_empty(fila_eventos))
+		{
+			desenhe_tela = false;
+			if (al_get_time() - tempo > 1)
+			{
+				tempo = al_get_time();
+				fps_tela = frame;
+				frame = 0;
+			}
+			al_draw_scaled_bitmap(imagem, 0, 0,
+				al_get_bitmap_width(imagem), al_get_bitmap_height(imagem),
+				0, 0,
+				L, A, 0);
+			al_draw_textf(fonte, al_map_rgb(255, 255, 0), 4.5*L / 6, 4 * A / 6.0, ALLEGRO_ALIGN_LEFT, "fase 1:  %i %%", pontos * 4);
+			al_draw_textf(fonte, al_map_rgb(255, 255, 0), 4.5*L / 6, 4.5*A / 6.0, ALLEGRO_ALIGN_LEFT, "pontos: %i", pontos);
+			al_draw_textf(fonte, al_map_rgb(255, 255, 0), 4.5*L / 6, 5 * A / 6.0, ALLEGRO_ALIGN_LEFT, "tempo: %i", tempo);
+			al_draw_textf(fonte, al_map_rgb(255, 255, 0), 4.5*L / 6, 5.5*A / 6.0, ALLEGRO_ALIGN_LEFT, "%ifps", fps_tela);
+			
+			al_draw_scaled_rotated_bitmap(sabre,	
+											L/2.0,A/2.0,
+											L/2.0,A/2.0,
+											0.2,0.2,sabre_theta,
+											0);
+
+			al_draw_scaled_bitmap(remote,
+				0, 0,							// source origin ????   
+				remote_altura, remote_largura,	// source width, source height
+				remote_x, remote_y,				// target origin
+				50, 50,	// target dimensions
+				0);								// flags
+			al_flip_display();
+			frame++;
+		}
+	}
 }
 
 void jogo_pong()
@@ -521,6 +619,10 @@ int inicializar_allegro()
 
 	bola = al_load_bitmap("imagens/bola.png");
 	barra = al_load_bitmap("imagens/barra.png");
+
+	sabre = al_load_bitmap("imagens/sabre_luz.png");
+	remote = al_load_bitmap("imagens/remote.png");
+
 
 	return true;
 }
