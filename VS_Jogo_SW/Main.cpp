@@ -15,7 +15,7 @@
 #include <time.h>
 #include "string"
 #include <math.h>
-
+#define M_PI 3.14159
 // Includes do alegro
 #include <allegro5/allegro.h>
 #include <allegro5/allegro_font.h>
@@ -95,15 +95,24 @@ void jogo()
 	float sabre_largura = al_get_bitmap_width(sabre);
 	float sabre_x = 2.0*L / 3.0;
 	float sabre_y = A / 2.0;
+	float sabre_vx = 2.0;
+	float sabre_vy = 2.0;
+	float sabre_vtheta = 2.0;
+	bool sabre_ligado = false;
 	float remote_x = A / 2.0;
 	float remote_y = A / 2.0;
+	float remove_vx = 2;
+	float remove_vy = 2;
 	float sabre_theta = 90.0;
 	float sabre_phi = 0.0;
+	float sabre_escala = (A / sabre_altura) / 6.0;
 
 	bool cima = false;
 	bool baixo = false;
 	bool esquerda = false;
 	bool direita = false;
+	bool theta_direita = false;
+	bool theta_esquerda = false;
 	bool desenhe_tela = false;
 	int pontos = 0;
 	int frame = 0;
@@ -125,11 +134,32 @@ void jogo()
 		{
 			switch (evento.keyboard.keycode)
 			{
-			case ALLEGRO_KEY_UP:
+			case ALLEGRO_KEY_L:
+				sabre_ligado = !sabre_ligado;
+				break;
+			case ALLEGRO_KEY_A:
+				esquerda = true;
+				break;
+			case ALLEGRO_KEY_D:
+				direita = true;
+				break;
+			case ALLEGRO_KEY_W:
 				cima = true;
 				break;
-			case ALLEGRO_KEY_DOWN:
+			case ALLEGRO_KEY_S:
 				baixo = true;
+				break;
+			case ALLEGRO_KEY_DOWN:
+				//baixo = true;
+				break;
+			case ALLEGRO_KEY_UP:
+				//cima = true;
+				break;
+			case ALLEGRO_KEY_LEFT:
+				theta_esquerda = true;
+				break;
+			case ALLEGRO_KEY_RIGHT:
+				theta_direita = true;
 				break;
 			default:
 				break;
@@ -139,11 +169,29 @@ void jogo()
 		{
 			switch (evento.keyboard.keycode)
 			{
-			case ALLEGRO_KEY_UP:
+			case ALLEGRO_KEY_A:
+				esquerda = false;
+				break;
+			case ALLEGRO_KEY_D:
+				direita = false;
+				break;
+			case ALLEGRO_KEY_W:
 				cima = false;
 				break;
-			case ALLEGRO_KEY_DOWN:
+			case ALLEGRO_KEY_S:
 				baixo = false;
+				break;
+			case ALLEGRO_KEY_DOWN:
+				//baixo = true;
+				break;
+			case ALLEGRO_KEY_UP:
+				//cima = true;
+				break;
+			case ALLEGRO_KEY_LEFT:
+				theta_esquerda = false;
+				break;
+			case ALLEGRO_KEY_RIGHT:
+				theta_direita = false;
 				break;
 			default:
 				break;
@@ -151,10 +199,19 @@ void jogo()
 		}
 		if (evento.type == ALLEGRO_EVENT_TIMER)
 			desenhe_tela = true;
-		if (cima)
+		if (theta_esquerda)
 			sabre_theta += 1;
-		if (baixo)
+		if (theta_direita)
 			sabre_theta -= 1;
+		if (direita)
+			sabre_x += sabre_vx;
+		if (esquerda)
+			sabre_x -= sabre_vx;
+		if (cima)
+			sabre_y -= sabre_vy;
+		if (baixo)
+			sabre_y += sabre_vy;
+
 		if (desenhe_tela && al_is_event_queue_empty(fila_eventos))
 		{
 			desenhe_tela = false;
@@ -173,14 +230,20 @@ void jogo()
 			al_draw_textf(fonte, al_map_rgb(255, 255, 0), 4.5*L / 6, 5 * A / 6.0, ALLEGRO_ALIGN_LEFT, "tempo: %i", tempo);
 			al_draw_textf(fonte, al_map_rgb(255, 255, 0), 4.5*L / 6, 5.5*A / 6.0, ALLEGRO_ALIGN_LEFT, "%ifps", fps_tela);
 			
-			al_draw_scaled_rotated_bitmap(sabre,	
-											L/2.0,A/2.0,
-											L/2.0,A/2.0,
-											0.2,0.2,sabre_theta,
-											0);
+			al_draw_scaled_rotated_bitmap(	sabre,	
+											sabre_largura/2.0,sabre_altura/2.0,
+											sabre_x,sabre_y,
+											sabre_escala, sabre_escala,
+											M_PI*(sabre_theta + 85) / 180.0,0);
+			if (sabre_ligado)
+			{
+				al_draw_line(sabre_x + sabre_escala * (sabre_altura / 2.1) * cos(M_PI*sabre_theta / 180.0), sabre_y + sabre_escala * (sabre_altura / 2.1) * sin(M_PI*sabre_theta / 180.0),
+					sabre_x + 500 * cos(M_PI*sabre_theta / 180.0), sabre_y + 500 * sin(M_PI*sabre_theta / 180.0),
+					al_map_rgb(255, 0, 0), 10);
+			}			
 
 			al_draw_scaled_bitmap(remote,
-				0, 0,							// source origin ????   
+				0, 0,							
 				remote_altura, remote_largura,	// source width, source height
 				remote_x, remote_y,				// target origin
 				50, 50,	// target dimensions
