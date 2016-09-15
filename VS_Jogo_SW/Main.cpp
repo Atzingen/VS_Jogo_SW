@@ -15,6 +15,7 @@
 #include <time.h>
 #include "string"
 #include <math.h>
+
 #define M_PI 3.14159
 // Includes do alegro
 #include <allegro5/allegro.h>
@@ -101,8 +102,8 @@ void jogo()
 	bool sabre_ligado = false;
 	float remote_x = A / 2.0;
 	float remote_y = A / 2.0;
-	float remove_vx = 2;
-	float remove_vy = 2;
+	float remote_vx = 2;
+	float remote_vy = 2;
 	float sabre_theta = 90.0;
 	float sabre_phi = 0.0;
 	float sabre_escala = (A / sabre_altura) / 6.0;
@@ -214,6 +215,28 @@ void jogo()
 
 		if (desenhe_tela && al_is_event_queue_empty(fila_eventos))
 		{
+			fprintf(stderr, "rand %f \n", rand() / ((float)RAND_MAX) );
+			if (remote_x > (L - 100) || remote_x < 100 )
+			{
+				remote_vx = -1 * remote_vx;
+			}
+			else if (rand()%100  > 98)
+			{
+				remote_vx = -1 * remote_vx;
+			}
+			if (remote_y > (A - 100) || remote_y < 100 )
+			{
+				remote_vy = -1 * remote_vy;
+			}
+			else if (rand()%100 > 98)
+			{
+				remote_vy = -1 * remote_vy;
+			}
+
+			remote_x += remote_vx;
+			remote_y += remote_vy;
+
+
 			desenhe_tela = false;
 			if (al_get_time() - tempo > 1)
 			{
