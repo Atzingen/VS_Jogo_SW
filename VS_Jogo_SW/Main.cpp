@@ -64,6 +64,7 @@ ALLEGRO_SAMPLE *som_abertura;
 ALLEGRO_SAMPLE_ID id;
 ALLEGRO_FONT *fonte = NULL;
 ALLEGRO_TIMER *timer = NULL;
+ALLEGRO_MOUSE_STATE mouse_state;
 
 // TODO - definir as cores -> ALLEGRO_COLOR amarelo = al_map_rgb(255,255,0); ???
 int tem_eventos;
@@ -101,7 +102,7 @@ void jogo()
 	float sabre_vtheta = 2.0;
 	bool sabre_ligado = false;
 	float remote_x = A / 2.0;
-	float remote_y = A / 2.0;
+	float remote_y = A / 5.0;
 	float remote_vx = 2;
 	float remote_vy = 2;
 	float sabre_theta = 90.0;
@@ -215,8 +216,11 @@ void jogo()
 
 		if (desenhe_tela && al_is_event_queue_empty(fila_eventos))
 		{
-			fprintf(stderr, "rand %f \n", rand() / ((float)RAND_MAX) );
-			if (remote_x > (L - 100) || remote_x < 100 )
+			al_get_mouse_state(&mouse_state);
+			fprintf(stderr, "MouseX: %i , Y: %i \n", mouse_state.x, mouse_state.y);
+			sabre_theta = mouse_state.x*(360)/L + 90;
+	
+			if (remote_x > (3.0*L/4.0) || remote_x < L/3.0 )
 			{
 				remote_vx = -1 * remote_vx;
 			}
@@ -224,7 +228,7 @@ void jogo()
 			{
 				remote_vx = -1 * remote_vx;
 			}
-			if (remote_y > (A - 100) || remote_y < 100 )
+			if (remote_y > 2.0*A/5.0 || remote_y < 10 )
 			{
 				remote_vy = -1 * remote_vy;
 			}
@@ -263,13 +267,17 @@ void jogo()
 				al_draw_line(sabre_x + sabre_escala * (sabre_altura / 2.1) * cos(M_PI*sabre_theta / 180.0), sabre_y + sabre_escala * (sabre_altura / 2.1) * sin(M_PI*sabre_theta / 180.0),
 					sabre_x + 500 * cos(M_PI*sabre_theta / 180.0), sabre_y + 500 * sin(M_PI*sabre_theta / 180.0),
 					al_map_rgb(255, 0, 0), 10);
-			}			
-
-			al_draw_scaled_bitmap(remote,
+			}
+			float escala = remote_y / 400;
+			al_draw_filled_ellipse(remote_x, 400,
+									escala*20,escala*10,
+									al_map_rgb(40,40,40));
+			al_draw_tinted_scaled_bitmap(remote,
+				al_map_rgb(100,100,100),
 				0, 0,							
 				remote_altura, remote_largura,	// source width, source height
 				remote_x, remote_y,				// target origin
-				50, 50,	// target dimensions
+				35, 35,	// target dimensions
 				0);								// flags
 			al_flip_display();
 			frame++;
@@ -554,6 +562,7 @@ int fila_allegro(int tipo)
 {
 	al_register_event_source(fila_eventos, al_get_display_event_source(janela));
 	al_register_event_source(fila_eventos, al_get_keyboard_event_source());
+	al_register_event_source(fila_eventos, al_get_mouse_event_source());
 	if (tipo == 1)
 	{
 		al_register_event_source(fila_eventos, al_get_timer_event_source(timer));
@@ -702,6 +711,20 @@ int inicializar_allegro()
 		return -1;
 	}
 	al_set_window_title(janela, "Testando allegro_primitives");
+
+	if (!al_install_mouse())
+	{
+		fprintf(stderr, "Falha ao inicializar o mouse.\n");
+		al_destroy_display(janela);
+		return -1;
+	}
+
+	if (!al_set_system_mouse_cursor(janela, ALLEGRO_SYSTEM_MOUSE_CURSOR_DEFAULT))
+	{
+		fprintf(stderr, "Falha ao atribuir ponteiro do mouse.\n");
+		al_destroy_display(janela);
+		return -1;
+	}
 
 	bola = al_load_bitmap("imagens/bola.png");
 	barra = al_load_bitmap("imagens/barra.png");
