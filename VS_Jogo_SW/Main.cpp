@@ -49,6 +49,7 @@ ALLEGRO_EVENT_QUEUE *fila_eventos = NULL;
 ALLEGRO_EVENT evento;
 ALLEGRO_TIMEOUT timeout;
 ALLEGRO_BITMAP *imagem = NULL;
+ALLEGRO_BITMAP *fundo_jogo = NULL;
 ALLEGRO_BITMAP *bola = NULL;
 ALLEGRO_BITMAP *barra = NULL;
 ALLEGRO_BITMAP *sabre = NULL;
@@ -91,6 +92,7 @@ void tela_login()
 
 void jogo()
 {
+	fprintf(stderr, "entrou no jogo \n");
 	float remote_largura = al_get_bitmap_width(remote);
 	float remote_altura = al_get_bitmap_height(remote);
 	float sabre_altura = al_get_bitmap_height(sabre);
@@ -116,19 +118,29 @@ void jogo()
 	bool theta_direita = false;
 	bool theta_esquerda = false;
 	bool desenhe_tela = false;
+	int n_tiros = 0;
+	float pos_tiros[2][3];
+	fprintf(stderr, "AL\n");
+	for (int i = 0; i < 2; i++)
+	{
+		for (int j = 0; j < 3; j++)
+		{
+			pos_tiros[i][j] = 0.0;
+		}
+	}
+	fprintf(stderr, "dl\n");
 	int pontos = 0;
 	int frame = 0;
 	int fps_tela = 0;
 	int tempo = al_get_time();
-
-	imagem = al_load_bitmap("imagens/dagobah.jpeg");
-
+	fprintf(stderr, "A\n");
 	fila_allegro(1);
 	al_start_timer(timer);
-
+	fprintf(stderr, "B\n");
 	bool jogando = true;
 	while (jogando)
 	{
+		fprintf(stderr, "preso no loop \n");
 		al_wait_for_event(fila_eventos, &evento);
 		if (tem_eventos)
 			if (evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE) break;
@@ -200,47 +212,61 @@ void jogo()
 			}
 		}
 		if (evento.type == ALLEGRO_EVENT_TIMER)
+		{
+			fprintf(stderr,"event timer \n");
 			desenhe_tela = true;
-		if (theta_esquerda)
-			sabre_theta += 1;
-		if (theta_direita)
-			sabre_theta -= 1;
-		if (direita)
-			sabre_x += sabre_vx;
-		if (esquerda)
-			sabre_x -= sabre_vx;
-		if (cima)
-			sabre_y -= sabre_vy;
-		if (baixo)
-			sabre_y += sabre_vy;
+			if (theta_esquerda)
+				sabre_theta += 1;
+			if (theta_direita)
+				sabre_theta -= 1;
+			if (direita)
+				sabre_x += sabre_vx;
+			if (esquerda)
+				sabre_x -= sabre_vx;
+			if (cima)
+				sabre_y -= sabre_vy;
+			if (baixo)
+				sabre_y += sabre_vy;
+			al_get_mouse_state(&mouse_state);
+			//fprintf(stderr, "MouseX: %i , Y: %i \n", mouse_state.x, mouse_state.y);
+			sabre_theta = mouse_state.x*(360) / L + 90;
+
+			if (remote_x > (3.0*L / 4.0) || remote_x < L / 3.0)
+			{
+				remote_vx = -1 * remote_vx;
+			}
+			else if (rand() % 100  > 98)
+			{
+				remote_vx = -1 * remote_vx;
+			}
+			if (remote_y > 2.0*A / 5.0 || remote_y < 10)
+			{
+				remote_vy = -1 * remote_vy;
+			}
+			else if (rand() % 100 < 2)
+			{
+				remote_vy = -1 * remote_vy;
+			}
+			else if (rand() % 1000 > 995)
+			{
+				if (n_tiros < 3)
+				{
+					n_tiros++;
+					pos_tiros[0][n_tiros] = remote_x;
+					pos_tiros[1][n_tiros] = remote_y;
+
+				}
+				else
+				{
+					n_tiros = 0;
+				}
+			}
+			remote_x += remote_vx;
+			remote_y += remote_vy;
+		}
 
 		if (desenhe_tela && al_is_event_queue_empty(fila_eventos))
 		{
-			al_get_mouse_state(&mouse_state);
-			fprintf(stderr, "MouseX: %i , Y: %i \n", mouse_state.x, mouse_state.y);
-			sabre_theta = mouse_state.x*(360)/L + 90;
-	
-			if (remote_x > (3.0*L/4.0) || remote_x < L/3.0 )
-			{
-				remote_vx = -1 * remote_vx;
-			}
-			else if (rand()%100  > 98)
-			{
-				remote_vx = -1 * remote_vx;
-			}
-			if (remote_y > 2.0*A/5.0 || remote_y < 10 )
-			{
-				remote_vy = -1 * remote_vy;
-			}
-			else if (rand()%100 > 98)
-			{
-				remote_vy = -1 * remote_vy;
-			}
-
-			remote_x += remote_vx;
-			remote_y += remote_vy;
-
-
 			desenhe_tela = false;
 			if (al_get_time() - tempo > 1)
 			{
@@ -248,8 +274,8 @@ void jogo()
 				fps_tela = frame;
 				frame = 0;
 			}
-			al_draw_scaled_bitmap(imagem, 0, 0,
-				al_get_bitmap_width(imagem), al_get_bitmap_height(imagem),
+			al_draw_scaled_bitmap(fundo_jogo, 0, 0,
+				al_get_bitmap_width(fundo_jogo), al_get_bitmap_height(fundo_jogo),
 				0, 0,
 				L, A, 0);
 			al_draw_textf(fonte, al_map_rgb(255, 255, 0), 4.5*L / 6, 4 * A / 6.0, ALLEGRO_ALIGN_LEFT, "fase 1:  %i %%", pontos * 4);
@@ -269,16 +295,16 @@ void jogo()
 					al_map_rgb(255, 0, 0), 10);
 			}
 			float escala = remote_y / 400;
-			al_draw_filled_ellipse(remote_x, 400,
-									escala*20,escala*10,
+			al_draw_filled_ellipse(remote_x + 10, 400,			// 10 Inserido manualmente (trocar)
+									escala*18,escala*8,
 									al_map_rgb(40,40,40));
 			al_draw_tinted_scaled_bitmap(remote,
 				al_map_rgb(100,100,100),
 				0, 0,							
 				remote_altura, remote_largura,	// source width, source height
 				remote_x, remote_y,				// target origin
-				35, 35,	// target dimensions
-				0);								// flags
+				35, 35,							// target dimensions
+				0);								
 			al_flip_display();
 			frame++;
 		}
@@ -728,9 +754,16 @@ int inicializar_allegro()
 
 	bola = al_load_bitmap("imagens/bola.png");
 	barra = al_load_bitmap("imagens/barra.png");
-
+	fundo_jogo = al_load_bitmap("imagens/dagobah.jpeg");
 	sabre = al_load_bitmap("imagens/sabre_luz.png");
 	remote = al_load_bitmap("imagens/remote.png");
+
+	if (!bola || !barra || !fundo_jogo || !sabre || !remote)
+	{
+		fprintf(stderr, "zica na imagem.\n");
+		al_destroy_display(janela);
+		return -1;
+	}
 
 
 	return true;
