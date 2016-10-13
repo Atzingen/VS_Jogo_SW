@@ -110,7 +110,7 @@ void jogo()
 	float sabre_theta = 90.0;
 	float sabre_phi = 0.0;
 	float sabre_escala = (A / sabre_altura) / 6.0;
-
+	int max_tiros_tela = 3;
 	bool cima = false;
 	bool baixo = false;
 	bool esquerda = false;
@@ -118,14 +118,16 @@ void jogo()
 	bool theta_direita = false;
 	bool theta_esquerda = false;
 	bool desenhe_tela = false;
-	int n_tiros = 0;
-	float pos_tiros[2][3];
+	const int j_max = 30;
+	int n_tiros = -1;
+	int n_tiro_max = 3;
+	float pos_tiros[4][30];
 	fprintf(stderr, "AL\n");
-	for (int i = 0; i < 2; i++)
+	for (int i = 0; i < 4; i++)
 	{
-		for (int j = 0; j < 3; j++)
+		for (int j = 0; j < j_max; j++)
 		{
-			pos_tiros[i][j] = 0.0;
+			pos_tiros[i][j] = -1.0;
 		}
 	}
 	fprintf(stderr, "dl\n");
@@ -140,7 +142,6 @@ void jogo()
 	bool jogando = true;
 	while (jogando)
 	{
-		fprintf(stderr, "preso no loop \n");
 		al_wait_for_event(fila_eventos, &evento);
 		if (tem_eventos)
 			if (evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE) break;
@@ -213,7 +214,6 @@ void jogo()
 		}
 		if (evento.type == ALLEGRO_EVENT_TIMER)
 		{
-			fprintf(stderr,"event timer \n");
 			desenhe_tela = true;
 			if (theta_esquerda)
 				sabre_theta += 1;
@@ -249,17 +249,32 @@ void jogo()
 			}
 			else if (rand() % 1000 > 995)
 			{
-				if (n_tiros < 3)
+				fprintf(stderr, "novo tiro \n");
+				for (int i = 0; i < max_tiros_tela; i++)
 				{
-					n_tiros++;
-					pos_tiros[0][n_tiros] = remote_x;
-					pos_tiros[1][n_tiros] = remote_y;
+					if (pos_tiros[0][i] == -1)
+					{
 
+						pos_tiros[0][i] = remote_x;	// posicao inicial do tiro x
+						pos_tiros[1][i] = remote_y;	// posicao inicial do tiro y
+						pos_tiros[2][i] = remote_x;	// posicao atual do tiro x
+						pos_tiros[3][i] = remote_y;	// posicao atual do tiro y
+						pos_tiros[4][i] = 1;			// posicao aleatoria final do tiro x
+						pos_tiros[5][i] = 1;			// posicao aleatoria final do tiro y
+						break;
+					}
 				}
-				else
+			}
+			// atualizando a posicao dos tiros:
+			for (int i = 0; i < n_tiro_max; i++)
+			{
+				if (pos_tiros[0][i] > -1)
 				{
-					n_tiros = 0;
+					//fprintf(stderr, "%.2f | ", pos_tiros[0][i]);
+					pos_tiros[2][i] += (pos_tiros[4][i]-pos_tiros[0][i])/100;
+					pos_tiros[3][i] += (pos_tiros[5][i] - pos_tiros[1][i]) / 100;
 				}
+				//fprintf(stderr, "\n");
 			}
 			remote_x += remote_vx;
 			remote_y += remote_vy;
@@ -304,7 +319,15 @@ void jogo()
 				remote_altura, remote_largura,	// source width, source height
 				remote_x, remote_y,				// target origin
 				35, 35,							// target dimensions
-				0);								
+				0);		
+			for (int i = 0; i < max_tiros_tela; i++)
+			{
+				if (pos_tiros[2][i] > -1)
+				{
+					al_draw_ellipse(pos_tiros[2][i], pos_tiros[3][i], 20, 20, al_map_rgb(255, 0, 0),5);
+				}
+			}
+			
 			al_flip_display();
 			frame++;
 		}
