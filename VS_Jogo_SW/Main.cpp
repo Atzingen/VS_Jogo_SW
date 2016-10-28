@@ -121,7 +121,8 @@ void jogo()
 	const int j_max = 30;
 	int n_tiros = -1;
 	int n_tiro_max = 3;
-	float pos_tiros[4][30];
+	float pos_tiros[6][35];
+	int contador_zica = 0;
 	fprintf(stderr, "AL\n");
 	for (int i = 0; i < 4; i++)
 	{
@@ -214,6 +215,8 @@ void jogo()
 		}
 		if (evento.type == ALLEGRO_EVENT_TIMER)
 		{
+			contador_zica = (contador_zica == 59) ? 0 : contador_zica + 1;
+			if (contador_zica == 0) fprintf(stderr, "%f,%f \n", pos_tiros[2][0], pos_tiros[3][0]);
 			desenhe_tela = true;
 			if (theta_esquerda)
 				sabre_theta += 1;
@@ -228,9 +231,7 @@ void jogo()
 			if (baixo)
 				sabre_y += sabre_vy;
 			al_get_mouse_state(&mouse_state);
-			//fprintf(stderr, "MouseX: %i , Y: %i \n", mouse_state.x, mouse_state.y);
 			sabre_theta = mouse_state.x*(360) / L + 90;
-
 			if (remote_x > (3.0*L / 4.0) || remote_x < L / 3.0)
 			{
 				remote_vx = -1 * remote_vx;
@@ -254,13 +255,33 @@ void jogo()
 				{
 					if (pos_tiros[0][i] == -1)
 					{
-
 						pos_tiros[0][i] = remote_x;	// posicao inicial do tiro x
 						pos_tiros[1][i] = remote_y;	// posicao inicial do tiro y
 						pos_tiros[2][i] = remote_x;	// posicao atual do tiro x
 						pos_tiros[3][i] = remote_y;	// posicao atual do tiro y
-						pos_tiros[4][i] = 1;			// posicao aleatoria final do tiro x
-						pos_tiros[5][i] = 1;			// posicao aleatoria final do tiro y
+						int targuetX = remote_x;
+						while ( ( targuetX > (remote_x - 50)) && ( targuetX < (remote_x + 50) ) )
+						{
+							targuetX = L*((rand()%1001)/1000.0);
+							//fprintf(stderr, " remote=%i ", remote_x);
+							//fprintf(stderr," tentativa posX=%i\n", targuetX);
+						}
+						pos_tiros[4][i] = targuetX;		// posicao aleatoria final do tiro x
+						int targuetY = remote_y;
+						while ((targuetY >(remote_y - 50)) && (targuetY < (remote_y + 50)))
+						{
+							targuetY = A*((rand() % 1001) / 1000.0);
+							//fprintf(stderr, " tentativa posY=%i \n", targuetY);
+						}
+						pos_tiros[5][i] = targuetY;		// posicao aleatoria final do tiro y
+						pos_tiros[4][i] = 500;
+						pos_tiros[5][i] = 500;
+						fprintf(stderr, "[0][i]=%f ",pos_tiros[0][i]);
+						fprintf(stderr, "[1][i]=%f ", pos_tiros[1][i]);
+						fprintf(stderr, "[2][i]=%f ", pos_tiros[2][i]);
+						fprintf(stderr, "[3][i]=%f ", pos_tiros[3][i]);
+						fprintf(stderr, "[4][i]%f ", pos_tiros[4][i]);
+						fprintf(stderr, "[5][i]%f \n",pos_tiros[5][i]);
 						break;
 					}
 				}
@@ -268,18 +289,22 @@ void jogo()
 			// atualizando a posicao dos tiros:
 			for (int i = 0; i < n_tiro_max; i++)
 			{
+				pos_tiros[4][i] = pos_tiros[5][i] = 500.0;
+				pos_tiros[0][i] = pos_tiros[1][i] = 0.0;
 				if (pos_tiros[0][i] > -1)
 				{
-					//fprintf(stderr, "%.2f | ", pos_tiros[0][i]);
-					pos_tiros[2][i] += (pos_tiros[4][i]-pos_tiros[0][i])/100;
-					pos_tiros[3][i] += (pos_tiros[5][i] - pos_tiros[1][i]) / 100;
+					if (fabs(pos_tiros[4][i] - pos_tiros[0][i]) > 10)
+					{
+						pos_tiros[2][i] += (pos_tiros[4][i] - pos_tiros[0][i]) / 10.00;
+					}
+					if (fabs(pos_tiros[5][i] - pos_tiros[1][i]) > 10)
+						pos_tiros[3][i] += ((pos_tiros[5][i] - pos_tiros[1][i]) / 10.00);
 				}
 				//fprintf(stderr, "\n");
 			}
 			remote_x += remote_vx;
 			remote_y += remote_vy;
 		}
-
 		if (desenhe_tela && al_is_event_queue_empty(fila_eventos))
 		{
 			desenhe_tela = false;
@@ -324,10 +349,11 @@ void jogo()
 			{
 				if (pos_tiros[2][i] > -1)
 				{
-					al_draw_ellipse(pos_tiros[2][i], pos_tiros[3][i], 20, 20, al_map_rgb(255, 0, 0),5);
+					al_draw_ellipse((int)pos_tiros[2][i], (int)pos_tiros[3][i], 20, 20, al_map_rgb(255, 0, 0),5);
+					al_draw_ellipse(500, 500, 20, 20, al_map_rgb(255, 0, 0), 5);
+					al_draw_ellipse(0,0, 20, 20, al_map_rgb(255, 0, 0), 5);
 				}
 			}
-			
 			al_flip_display();
 			frame++;
 		}
