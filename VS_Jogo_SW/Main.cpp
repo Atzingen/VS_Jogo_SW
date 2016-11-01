@@ -136,9 +136,9 @@ void jogo()
 	float pos_tiros[6][35];
 	int contador_zica = 0;
 	fprintf(stderr, "AL\n");
-	for (int i = 0; i < 4; i++)
+	for (int i = 0; i < 6; i++)
 	{
-		for (int j = 0; j < 30; j++)
+		for (int j = 0; j < 35; j++)
 		{
 			pos_tiros[i][j] = -1.0;
 		}
@@ -330,7 +330,6 @@ void jogo()
 							pos_tiros[3][i] = -1;
 							pos_tiros[4][i] = -1;
 							pos_tiros[5][i] = -1;
-							pos_tiros[6][i] = -1;
 						}
 					}
 					else
