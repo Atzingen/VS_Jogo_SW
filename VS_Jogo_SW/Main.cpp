@@ -29,7 +29,7 @@
 using namespace std;
 
 // Minhas funções e macros
-void escreve_texto_opcoes(vector<string> opcoes, int escolhido);
+void escreve_texto(vector<string> opcoes, int escolhido, int tipo);
 int inicializar_allegro(void);
 void the_end_allegro(void);
 int fila_allegro(int tipo);
@@ -40,10 +40,12 @@ void tela_configuracao(void);
 void tela_login(void);
 void jogo_pong(void);
 bool sabre_defesa(float targuet_x, float targuet_y, float sabre_x, float sabre_y, float sabre_theta);
+float dist_euclidiana(float p1_x, float p1_y,float p2_x, float p2_y);
 
 // Variáveis/structs públicas
-const int L = 1200;
-const int A = 800;
+int L = 1200;
+int A = 800;
+bool full_screen = false;
 float fps = 60;
 ALLEGRO_DISPLAY *janela = NULL;
 ALLEGRO_EVENT_QUEUE *fila_eventos = NULL;
@@ -67,8 +69,8 @@ ALLEGRO_SAMPLE_ID id;
 ALLEGRO_FONT *fonte = NULL;
 ALLEGRO_TIMER *timer = NULL;
 ALLEGRO_MOUSE_STATE mouse_state;
+ALLEGRO_DISPLAY_MODE   disp_data;
 
-// TODO - definir as cores -> ALLEGRO_COLOR amarelo = al_map_rgb(255,255,0); ???
 int tem_eventos;
 float tempo_abertura = 10.0;
 float tempo_final = 3.0;
@@ -86,19 +88,10 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-bool sabre_defesa(float t_x, float t_y, float s_x, float s_y, float s_theta)
-{
-	// TODO
-	return true;
-}
-
-void tela_login()
-{
-
-}
-
 void jogo()
 {
+	std::string command = "start \"teste\" C:\\Users\\gustavo\\Desktop\\SerialMouse\\run_mouse.bat";
+	system(command.c_str());
 	fprintf(stderr, "entrou no jogo \n");
 	float remote_largura = al_get_bitmap_width(remote);
 	float remote_altura = al_get_bitmap_height(remote);
@@ -117,7 +110,7 @@ void jogo()
 	float sabre_theta = 90.0;
 	float sabre_phi = 0.0;
 	float sabre_escala = (A / sabre_altura) / 6.0;
-	float laser_vel = 50;
+	float laser_vel = 0.01;
 	float laser_t_min = 3.0;
 	float laser_t_max = 5.0;
 	float laser_t_ultimo = 0.0;
@@ -133,10 +126,11 @@ void jogo()
 	bool theta_esquerda = false;
 	bool desenhe_tela = false;
 	int n_tiros = -1;
-	float pos_tiros[6][35];
+	int vida = 100;
+	float pos_tiros[7][35];
 	int contador_zica = 0;
 	fprintf(stderr, "AL\n");
-	for (int i = 0; i < 6; i++)
+	for (int i = 0; i < 7; i++)
 	{
 		for (int j = 0; j < 35; j++)
 		{
@@ -189,6 +183,8 @@ void jogo()
 			case ALLEGRO_KEY_RIGHT:
 				theta_direita = true;
 				break;
+			case ALLEGRO_KEY_ESCAPE:
+				jogando = false;
 			default:
 				break;
 			}
@@ -243,22 +239,13 @@ void jogo()
 			al_get_mouse_state(&mouse_state);
 			sabre_theta = mouse_state.x*(360) / L + 90;
 			if (remote_x > (3.0*L / 4.0) || remote_x < L / 3.0)
-			{
 				remote_vx = -1 * remote_vx;
-			}
 			else if (rand() % 100  > 98)
-			{
 				remote_vx = -1 * remote_vx;
-			}
 			if (remote_y > 2.0*A / 5.0 || remote_y < 10)
-			{
 				remote_vy = -1 * remote_vy;
-			}
 			else if (rand() % 100 < 2)
-			{
-				remote_vy = -1 * remote_vy;
-			}
-			
+				remote_vy = -1 * remote_vy;		
 			if (!laser_randon_time && al_get_time() - laser_t_ultimo > laser_t_min )
 			{
 				laser_randon_time = true;
@@ -287,23 +274,13 @@ void jogo()
 						pos_tiros[3][i] = remote_y;	// posicao atual do tiro y
 						int targuetX = remote_x;
 						while ( ( targuetX > (remote_x - 50)) && ( targuetX < (remote_x + 50) ) )
-						{
 							targuetX = L*((rand()%1001)/1000.0);
-						}
 						pos_tiros[4][i] = targuetX;		// posicao aleatoria final do tiro x
 						int targuetY = remote_y;
 						while ((targuetY >(remote_y - 50)) && (targuetY < (remote_y + 50)))
-						{
 							targuetY = A*((rand() % 1001) / 1000.0);
-						}
 						pos_tiros[5][i] = targuetY;		// posicao aleatoria final do tiro y
-						fprintf(stderr, "=%i \n", i);
-						fprintf(stderr, "\n[0][i]=%f ",pos_tiros[0][i]);
-						fprintf(stderr, "[1][i]=%f ", pos_tiros[1][i]);
-						fprintf(stderr, "[2][i]=%f ", pos_tiros[2][i]);
-						fprintf(stderr, "[3][i]=%f ", pos_tiros[3][i]);
-						fprintf(stderr, "[4][i]%f ", pos_tiros[4][i]);
-						fprintf(stderr, "[5][i]%f \n",pos_tiros[5][i]);
+						pos_tiros[6][i] = dist_euclidiana(pos_tiros[0][i], pos_tiros[1][i], pos_tiros[4][i], pos_tiros[5][i]);
 						break;
 					}
 				}
@@ -313,43 +290,21 @@ void jogo()
 			{
 				if (pos_tiros[0][i] > -1)
 				{
-					float dist_x_alvo = (pos_tiros[4][i] - pos_tiros[2][i]);
-					float dist_y_alvo = (pos_tiros[5][i] - pos_tiros[3][i]);
-					if (abs(dist_x_alvo) < 10 && abs(dist_y_alvo) < 10)
+					float dist_alvo = dist_euclidiana(pos_tiros[2][i], pos_tiros[3][i], pos_tiros[4][i], pos_tiros[5][i]);
+					if ( dist_alvo < 30)
 					{
-						fprintf(stderr, "theta:%f  ", cos(M_PI*sabre_theta / 180.0));
-						fprintf(stderr, "sabreX:%f  ", sabre_x);
-						fprintf(stderr, "SabreY:%f  ", sabre_y);
-						fprintf(stderr, "AlvoX:%f  ", pos_tiros[2][i]);
-						fprintf(stderr, "AlvoY:%f  \n", pos_tiros[2][i] );
 						if ( sabre_defesa(pos_tiros[2][i], pos_tiros[3][i],sabre_x,sabre_y,sabre_theta ))
-						{
-							pos_tiros[0][i] = -1;
-							pos_tiros[1][i] = -1;
-							pos_tiros[2][i] = -1;
-							pos_tiros[3][i] = -1;
-							pos_tiros[4][i] = -1;
-							pos_tiros[5][i] = -1;
-						}
+							for (int k = 0; k < 7; k++)
+								pos_tiros[k][i] = -1;
 					}
 					else
 					{
-						if (dist_x_alvo > 0)
-						{
-							pos_tiros[2][i] += (laser_vel / 80.0) + dist_x_alvo / (120.0 - laser_vel);
-						}
-						else
-						{
-							pos_tiros[2][i] += (laser_vel / -80.0) + dist_x_alvo / (120 - laser_vel);
-						}
-						if (dist_y_alvo > 0)
-						{
-							pos_tiros[3][i] += (laser_vel / 80.0) + dist_y_alvo / (120.0 - laser_vel);
-						}
-						else
-						{
-							pos_tiros[3][i] += (laser_vel / -80.0) + dist_y_alvo / (120 - laser_vel);
-						}			
+						float vel_perspectiva;
+						vel_perspectiva = abs(pos_tiros[6][i] - dist_alvo);
+						if (vel_perspectiva < 150) vel_perspectiva = 150;
+						else if (vel_perspectiva > 250) vel_perspectiva = 250;
+						pos_tiros[2][i] += vel_perspectiva * laser_vel * ((pos_tiros[4][i] - pos_tiros[0][i])/ dist_alvo);
+						pos_tiros[3][i] += vel_perspectiva * laser_vel * ((pos_tiros[5][i] - pos_tiros[1][i])/ dist_alvo);
 					}			
 				}
 			}
@@ -369,7 +324,8 @@ void jogo()
 				al_get_bitmap_width(fundo_jogo), al_get_bitmap_height(fundo_jogo),
 				0, 0,
 				L, A, 0);
-			al_draw_textf(fonte, al_map_rgb(255, 255, 0), 4.5*L / 6, 4 * A / 6.0, ALLEGRO_ALIGN_LEFT, "fase 1:  %i %%", pontos * 4);
+			al_draw_textf(fonte, al_map_rgb(255, 255, 0), 4.5*L / 6, 3.5 * A / 6.0, ALLEGRO_ALIGN_LEFT, "fase 1:  %i %%", pontos * 4);
+			al_draw_textf(fonte, al_map_rgb(255, 255, 0), 4.5*L / 6, 4*A / 6.0, ALLEGRO_ALIGN_LEFT, "vida: %i %%", vida);
 			al_draw_textf(fonte, al_map_rgb(255, 255, 0), 4.5*L / 6, 4.5*A / 6.0, ALLEGRO_ALIGN_LEFT, "pontos: %i", pontos);
 			al_draw_textf(fonte, al_map_rgb(255, 255, 0), 4.5*L / 6, 5 * A / 6.0, ALLEGRO_ALIGN_LEFT, "tempo: %i", tempo);
 			al_draw_textf(fonte, al_map_rgb(255, 255, 0), 4.5*L / 6, 5.5*A / 6.0, ALLEGRO_ALIGN_LEFT, "%ifps", fps_tela);
@@ -400,7 +356,10 @@ void jogo()
 			{
 				if (pos_tiros[2][i] > -1)
 				{
-					al_draw_ellipse((int)pos_tiros[2][i], (int)pos_tiros[3][i], 20, 20, al_map_rgb(255, 0, 0),5);
+					float dist_alvo = dist_euclidiana(pos_tiros[2][i], pos_tiros[3][i], pos_tiros[4][i], pos_tiros[5][i]);
+					float raio_bola = (600.0 / dist_alvo);
+					if (raio_bola > 20) raio_bola = 20;
+					al_draw_ellipse(pos_tiros[2][i], pos_tiros[3][i], raio_bola, raio_bola, al_map_rgb(255, 0, 0),5);
 					al_draw_ellipse(pos_tiros[4][i], pos_tiros[5][i], 20, 20, al_map_rgb(0, 255, 0), 5);
 				}
 			}
@@ -408,6 +367,22 @@ void jogo()
 			frame++;
 		}
 	}
+}
+
+bool sabre_defesa(float t_x, float t_y, float s_x, float s_y, float s_theta)
+{
+	// TODO
+	return true;
+}
+
+void tela_login()
+{
+
+}
+
+float dist_euclidiana(float p1_x, float p1_y, float p2_x, float p2_y)
+{
+	return sqrt(pow(p1_x - p2_x, 2) + pow(p1_y - p2_y, 2));
 }
 
 void jogo_pong()
@@ -451,6 +426,9 @@ void jogo_pong()
 				break;
 			case ALLEGRO_KEY_DOWN:
 				baixo = true;
+				break;
+			case ALLEGRO_KEY_ESCAPE:
+				jogando = false;
 				break;
 			default:
 				break;
@@ -547,10 +525,153 @@ void jogo_pong()
 
 void tela_configuracao()
 {
+	std::vector<std::string> opcoes = { "Tipo Entrada","Porta Serial", "Calibrar Gyro","Calibrar Camera","voltar" };
+	std::vector<std::string> opcoes_secundarias = { "","","","",""};
+	int numero_opcoes = opcoes.size();
+	int numero_opcoes_secundarias = 3;
+	fprintf(stderr, "n: %i", numero_opcoes);
+	escreve_texto(opcoes, 1, 1);
+	al_play_sample(som_setup, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_LOOP, &id);
+	imagem = al_load_bitmap("imagens/vader01.JPG");
+	al_draw_scaled_bitmap(imagem, 0, 0,
+		al_get_bitmap_width(imagem), al_get_bitmap_height(imagem),
+		0, 0,
+		L, A, 0);
+	escreve_texto(opcoes, 1, 1);
+	int estado = 1;
+	int estado_secundario = 1;
+	bool principal = true;
+	bool click = false;
+	bool sair = false;
 
+	while (!sair)
+	{
+		fila_allegro(2);
+		al_flip_display();
+		if (tem_eventos)
+		{
+			if (evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE) break;	// Sai quando apertar o "x" da janela
+			else if (evento.type == ALLEGRO_EVENT_KEY_DOWN) // Alguma tecla apertada
+			{
+				if (principal)
+				{
+					switch (evento.keyboard.keycode)
+					{
+					case ALLEGRO_KEY_UP:
+						estado--;
+						break;
+					case ALLEGRO_KEY_DOWN:
+						estado++;
+						break;
+					case ALLEGRO_KEY_ENTER:
+						click = true;
+						break;
+					case ALLEGRO_KEY_RIGHT:
+						principal = false;
+						break;
+					}
+					if (estado > numero_opcoes)
+						estado = 1;
+					else if (estado < 1)
+						estado = numero_opcoes;
+				}
+				else
+				{
+					switch (evento.keyboard.keycode)
+					{
+					case ALLEGRO_KEY_UP:
+						estado_secundario--;
+						break;
+					case ALLEGRO_KEY_DOWN:
+						estado_secundario++;
+						break;
+					case ALLEGRO_KEY_LEFT:
+						principal = true;
+						break;
+					case ALLEGRO_KEY_ENTER:
+						click = true;
+						break;
+					}
+					if (estado_secundario > numero_opcoes_secundarias)
+						estado_secundario = 1;
+					else if (estado_secundario < 1)
+						estado_secundario = numero_opcoes_secundarias;
+				}
+				switch (estado)
+				{
+				case 1:
+					opcoes_secundarias[0] = "Mouse";
+					opcoes_secundarias[1] = "Serial";
+					opcoes_secundarias[2] = "Camera";
+					opcoes_secundarias[3] = "";
+					opcoes_secundarias[4] = "";
+					break;
+				case 2:
+					opcoes_secundarias[0] = "COM1";
+					opcoes_secundarias[1] = "COM2";
+					opcoes_secundarias[2] = "COM3";
+					opcoes_secundarias[3] = "COM4";
+					opcoes_secundarias[4] = "COM5";
+					break;
+				case 3:
+					opcoes_secundarias[0] = "YAW";
+					opcoes_secundarias[1] = "PITCH";
+					opcoes_secundarias[2] = "ROLL";
+					opcoes_secundarias[3] = "";
+					opcoes_secundarias[4] = "";
+					break;
+				case 4:
+					opcoes_secundarias[0] = "Azul";
+					opcoes_secundarias[1] = "Vermelho";
+					opcoes_secundarias[2] = "";
+					opcoes_secundarias[3] = "";
+					opcoes_secundarias[4] = "";
+					break;
+				case 5:
+					opcoes_secundarias[1] = "";
+					opcoes_secundarias[2] = "";
+					opcoes_secundarias[2] = "";
+					opcoes_secundarias[3] = "";
+					opcoes_secundarias[4] = "";
+					break;
+				default:
+					break;
+				}
+			}
+			if (click)
+			{
+				if (principal)
+				{
+					switch (estado)
+					{
+					case 5:
+						sair = true;
+						break;
+					default:
+						break;
+					}
+				}
+				else
+				{
+					switch (estado_secundario)
+					{
+					default:
+						break;
+					}
+				}
+			}
+			al_draw_scaled_bitmap(imagem, 0, 0,
+				al_get_bitmap_width(imagem), al_get_bitmap_height(imagem),
+				0, 0,
+				L, A, 0);
+			escreve_texto(opcoes, estado, 1);
+			escreve_texto(opcoes_secundarias, estado_secundario, 2);
+			al_flip_display();
+		}
+	}
 }
 
-void escreve_texto_opcoes(vector<string> opcoes,int escolhido)
+void escreve_texto(vector<string> opcoes, int escolhido, int tipo)
 {
 	int cor = 255;
 	int numero_elementos = opcoes.size();
@@ -560,8 +681,12 @@ void escreve_texto_opcoes(vector<string> opcoes,int escolhido)
 			cor = 0;
 		else
 			cor = 255;
-		al_draw_text(fonte, al_map_rgb(255, 255, cor), L/6,(i+1)*A/(numero_elementos+2), 
-						ALLEGRO_ALIGN_LEFT, opcoes[i].c_str());
+		if ( tipo == 1)
+			al_draw_text(fonte, al_map_rgb(255, 255, cor), L / 6, (i + 1)*A / (numero_elementos + 2),
+			ALLEGRO_ALIGN_LEFT, opcoes[i].c_str());
+		else if (tipo == 2)
+			al_draw_text(fonte, al_map_rgb(255, 255, cor), 4*L / 6, (i + 1)*A / (numero_elementos + 2),
+				ALLEGRO_ALIGN_LEFT, opcoes[i].c_str());
 	}
 }
 
@@ -570,14 +695,14 @@ void inicio_setup()
 	std::vector<std::string> opcoes = { "Iniciar", "Configurar","Pong","Login","fechar"};
 	int numero_opcoes = opcoes.size();
 	fprintf(stderr, "n: %i", numero_opcoes);
-	escreve_texto_opcoes(opcoes,1);
+	escreve_texto(opcoes,1,1);
 	al_play_sample(som_setup, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_LOOP, &id);
 	imagem = al_load_bitmap("imagens/vader02.JPG");
 	al_draw_scaled_bitmap(imagem, 0, 0,
 		al_get_bitmap_width(imagem), al_get_bitmap_height(imagem),
 		0, 0,
 		L, A, 0);
-	escreve_texto_opcoes(opcoes, 1);
+	escreve_texto(opcoes, 1, 1);
 	int estado = 1;
 	bool click = false;
 
@@ -608,7 +733,7 @@ void inicio_setup()
 					estado = numero_opcoes;
 				fprintf(stderr, "estado: %i \n", estado); // debug (retirar)
 			}
-			escreve_texto_opcoes(opcoes, estado);
+			escreve_texto(opcoes, estado, 1);
 			al_flip_display();
 		}
 	}
@@ -728,7 +853,7 @@ int inicializar_allegro()
 		return -1;
 	}
 
-	fonte = al_load_font("pirulen.ttf", 26, 0);
+	fonte = al_load_font("pirulen.ttf", 20, 0);
 	if (!fonte)
 	{
 		al_destroy_display(janela);
@@ -820,7 +945,13 @@ int inicializar_allegro()
 		fprintf(stderr, "Falha ao inicializar add-on de imagens.\n");
 		return false;
 	}
-
+	if (full_screen)
+	{
+		al_set_new_display_flags(ALLEGRO_FULLSCREEN);
+		al_get_display_mode(0, &disp_data);
+		L = disp_data.width;
+		A = disp_data.height;
+	}
 	janela = al_create_display(L, A);
 	if (!janela)
 	{
