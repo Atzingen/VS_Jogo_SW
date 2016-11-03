@@ -391,7 +391,7 @@ void jogo()
 									al_map_rgb(40,40,40));
 			al_draw_tinted_scaled_bitmap(remote,
 				al_map_rgb(100,100,100),
-				0, 0,							
+ n c				0, 0,							
 				remote_altura, remote_largura,	// source width, source height
 				remote_x, remote_y,				// target origin
 				35, 35,							// target dimensions
