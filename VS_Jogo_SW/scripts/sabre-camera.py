@@ -11,11 +11,14 @@
 '''
 
 from __future__ import division
-import time, serial, os, sys
+import time, serial, os, sys, win32api
 import numpy as np
 import cv2
 
-with open("config-camera.txt",'r') as f:
+L_tela, H_tela = win32api.GetSystemMetrics(0), win32api.GetSystemMetrics(1)
+L, H = 1200, 800
+
+with open("scripts/config-camera.txt",'r') as f:
     _, h_min1 = f.readline().split(',')
     _, s_min1 = f.readline().split(',')
     _, v_min1 = f.readline().split(',')
@@ -81,6 +84,9 @@ while frame is not None:
                           10,(0,255,0),2)
         cv2.line(frame,(p1_x,p1_y),(p2_x,p2_y), (10,0,10),15)
         cv2.line(frame,(p2_x,p2_y),(int(p2_x + 3.5*(p2_x-p1_x)),int(p2_y + 3.5*(p2_y-p1_y))),(0,0,255),15)
+        angulo = np.degrees(np.arctan((p2_y-p1_y)/(p2_x-p1_x)))
+        print angulo
+        win32api.SetCursorPos((int(L_tela/2.0+(int(L/180.0))*int(float(angulo))),int(H_tela/2.0)))
     except:
         pass
     cv2.imshow('camera',frame)

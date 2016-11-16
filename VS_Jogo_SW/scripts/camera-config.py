@@ -26,7 +26,7 @@ def nothing(x):
 
 def sava_config(h_min1,s_min1,v_min1,h_max1,s_max1,v_max1,k1,iter1,blur1,
                 h_min2,s_min2,v_min2,h_max2,s_max2,v_max2,k2,iter2,blur2):
-    with open("config-camera.txt",'w') as f:
+    with open("scripts/config-camera.txt",'w') as f:
         f.write("h_min1,"+str(h_min1)+'\n')
         f.write("s_min1,"+str(s_min1)+'\n')
         f.write("v_min1,"+str(v_min1)+'\n')

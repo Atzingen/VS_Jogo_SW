@@ -29,7 +29,7 @@ L_tela, H_tela = win32api.GetSystemMetrics(0), win32api.GetSystemMetrics(1)
 L, H = 1200, 800
 print L, H
 # abre o arquivo para ver a porta escolhida
-with open("serial_escolhida.txt") as f:
+with open("scripts/serial_escolhida.txt") as f:
     porta = f.readline()
     porta = porta.strip('\n')
     print porta
