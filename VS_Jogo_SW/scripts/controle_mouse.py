@@ -43,9 +43,10 @@ try:
         s.open()
         while 1:
             if win32api.GetAsyncKeyState(ord('Q')):
-        		sys.exit()
+                sys.exit()
             linha = s.readline()
             pitch, roll, yaw = linha.split(',')
+            print roll
             win32api.SetCursorPos((int(L_tela/2.0+(int(L/180.0))*int(float(roll))),int(H_tela/2.0)))
 except:
     pass

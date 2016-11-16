@@ -1,3 +1,4 @@
+# -*- coding: latin-1 -*-
 '''
     Programa que lista as portas "seriais" conectadas
     ao computador e salva elas em um arquivo txt com nome

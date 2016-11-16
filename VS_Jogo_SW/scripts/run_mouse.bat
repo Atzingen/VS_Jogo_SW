@@ -1,3 +1,3 @@
 @echo off
-cd C:\Users\gustavo\Desktop\SerialMouse
-python C:\\Users\\gustavo\\Desktop\\SerialMouse\\controle_mouse.py
+cd C:\\Users\\Gustavo\\Documents\\Allegro\\VS_Jogo_SW\\VS_Jogo_SW\\scripts
+python C:\\Users\\Gustavo\\Documents\\Allegro\\VS_Jogo_SW\\VS_Jogo_SW\\scripts\\controle_mouse.py
