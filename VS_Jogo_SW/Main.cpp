@@ -10,6 +10,8 @@
 // Coisas do c++
 #include "stdafx.h"
 #include <iostream>
+#include <fstream>
+#include <string>
 #include <stdio.h>
 #include <vector>
 #include <time.h>
@@ -31,6 +33,7 @@ using namespace std;
 // Minhas funções e macros
 void escreve_texto(vector<string> opcoes, int escolhido, int tipo);
 int inicializar_allegro(void);
+void inicia_script(string arquivo);
 void the_end_allegro(void);
 int fila_allegro(int tipo);
 void cutscene(int tipo);
@@ -41,6 +44,7 @@ void tela_login(void);
 void jogo_pong(void);
 bool sabre_defesa(float targuet_x, float targuet_y, float sabre_x, float sabre_y, float sabre_theta);
 float dist_euclidiana(float p1_x, float p1_y,float p2_x, float p2_y);
+void escreve_arquivo(string conteudo, string nome_arquivo);
 
 // Variáveis/structs públicas
 int L = 1200;
@@ -80,9 +84,9 @@ int main(int argc, char **argv)
 	srand(time(NULL));
 	if (inicializar_allegro())
 	{
-		cutscene(1);
+		//cutscene(1);
 		inicio_setup();
-		cutscene(3);
+		//cutscene(3);
 	}
 	the_end_allegro();
 	return 0;
@@ -90,8 +94,24 @@ int main(int argc, char **argv)
 
 void jogo()
 {
-	std::string command = "start \"teste\" .\\scripts\\run_mouse.bat";
-	system(command.c_str());
+	int valor_lido = 1;
+	string line;
+	ifstream myfile("scripts/tipo_controle.txt");
+	if (myfile.is_open())
+	{
+		getline(myfile, line);
+		myfile.close();
+		valor_lido = (int)line[0] - 48;
+		fprintf(stderr, "valor lido: %i \n", valor_lido);
+	}
+	if (valor_lido == 2)
+	{
+		inicia_script("run_mouse.bat");
+	}
+	else if (valor_lido == 3)
+	{
+		inicia_script("run_sabre_camera.bat");
+	}
 	fprintf(stderr, "entrou no jogo \n");
 	float remote_largura = al_get_bitmap_width(remote);
 	float remote_altura = al_get_bitmap_height(remote);
@@ -99,8 +119,8 @@ void jogo()
 	float sabre_largura = al_get_bitmap_width(sabre);
 	float sabre_x = 2.0*L / 3.0;
 	float sabre_y = A / 2.0;
-	float sabre_vx = 2.0;
-	float sabre_vy = 2.0;
+	float sabre_vx = 5.0;
+	float sabre_vy = 5.0;
 	float sabre_vtheta = 2.0;
 	bool sabre_ligado = false;
 	float remote_x = A / 2.0;
@@ -149,6 +169,8 @@ void jogo()
 	bool jogando = true;
 	while (jogando)
 	{
+		if (vida <= 0)
+			jogando = false;
 		al_wait_for_event(fila_eventos, &evento);
 		if (tem_eventos)
 			if (evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE) break;
@@ -293,9 +315,17 @@ void jogo()
 					float dist_alvo = dist_euclidiana(pos_tiros[2][i], pos_tiros[3][i], pos_tiros[4][i], pos_tiros[5][i]);
 					if ( dist_alvo < 30)
 					{
-						if ( sabre_defesa(pos_tiros[2][i], pos_tiros[3][i],sabre_x,sabre_y,sabre_theta ))
-							for (int k = 0; k < 7; k++)
-								pos_tiros[k][i] = -1;
+						if (sabre_defesa(pos_tiros[2][i], pos_tiros[3][i], sabre_x, sabre_y, sabre_theta))
+						{
+							pontos++;
+							if (pontos % 10 == 0)
+								if (vida <= 90)
+									vida =+ 10;
+						}
+						else
+							vida = vida - 10;
+						for (int k = 0; k < 7; k++)
+							pos_tiros[k][i] = -1;
 					}
 					else
 					{
@@ -347,7 +377,7 @@ void jogo()
 									al_map_rgb(40,40,40));
 			al_draw_tinted_scaled_bitmap(remote,
 				al_map_rgb(100,100,100),
- 				0, 0,							
+				0, 0,							
 				remote_altura, remote_largura,	// source width, source height
 				remote_x, remote_y,				// target origin
 				35, 35,							// target dimensions
@@ -369,15 +399,27 @@ void jogo()
 	}
 }
 
-bool sabre_defesa(float t_x, float t_y, float s_x, float s_y, float s_theta)
+bool sabre_defesa(float x0, float y0, float x1, float y1, float s_theta)
 {
-	// TODO
-	return true;
+	float x2 = x1 + cos(M_PI*s_theta / 180.0);
+	float y2 = y1 + sin(M_PI*s_theta / 180.0);
+	float distancia = abs((y2 - y1)*x0 - (x2 - x1)*y0 + x2*y1 - y2*x1) / sqrt(pow((y2 - y1), 2) + pow((x2 - x1), 2));
+	fprintf(stderr, "distancia da defesa: %f, resultado %i \n", distancia, distancia < 30);
+	if (distancia < 30)
+		return true;
+	else
+		return false;
 }
 
 void tela_login()
 {
 
+}
+
+void inicia_script(string arquivo)
+{
+	std::string command = "start \"teste\" scripts\\" + arquivo;
+	system(command.c_str());
 }
 
 float dist_euclidiana(float p1_x, float p1_y, float p2_x, float p2_y)
@@ -528,7 +570,7 @@ void tela_configuracao()
 	std::vector<std::string> opcoes = { "Tipo Entrada","Porta Serial", "Calibrar Gyro","Calibrar Camera","voltar" };
 	std::vector<std::string> opcoes_secundarias = { "","","","",""};
 	int numero_opcoes = opcoes.size();
-	int numero_opcoes_secundarias = 3;
+	int numero_opcoes_secundarias = 5;
 	fprintf(stderr, "n: %i", numero_opcoes);
 	escreve_texto(opcoes, 1, 1);
 	al_play_sample(som_setup, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_LOOP, &id);
@@ -603,8 +645,8 @@ void tela_configuracao()
 					opcoes_secundarias[0] = "Mouse";
 					opcoes_secundarias[1] = "Serial";
 					opcoes_secundarias[2] = "Camera";
-					opcoes_secundarias[3] = "";
-					opcoes_secundarias[4] = "";
+					opcoes_secundarias[3] = "-----";
+					opcoes_secundarias[4] = "-----";
 					break;
 				case 2:
 					opcoes_secundarias[0] = "COM1";
@@ -617,22 +659,22 @@ void tela_configuracao()
 					opcoes_secundarias[0] = "YAW";
 					opcoes_secundarias[1] = "PITCH";
 					opcoes_secundarias[2] = "ROLL";
-					opcoes_secundarias[3] = "";
-					opcoes_secundarias[4] = "";
+					opcoes_secundarias[3] = "----";
+					opcoes_secundarias[4] = "----";
 					break;
 				case 4:
-					opcoes_secundarias[0] = "Azul";
-					opcoes_secundarias[1] = "Vermelho";
-					opcoes_secundarias[2] = "";
-					opcoes_secundarias[3] = "";
-					opcoes_secundarias[4] = "";
+					opcoes_secundarias[0] = "----";
+					opcoes_secundarias[1] = "----";
+					opcoes_secundarias[2] = "----";
+					opcoes_secundarias[3] = "----";
+					opcoes_secundarias[4] = "----";
 					break;
 				case 5:
-					opcoes_secundarias[1] = "";
-					opcoes_secundarias[2] = "";
-					opcoes_secundarias[2] = "";
-					opcoes_secundarias[3] = "";
-					opcoes_secundarias[4] = "";
+					opcoes_secundarias[1] = "----";
+					opcoes_secundarias[2] = "----";
+					opcoes_secundarias[2] = "----";
+					opcoes_secundarias[3] = "----";
+					opcoes_secundarias[4] = "----";
 					break;
 				default:
 					break;
@@ -640,22 +682,35 @@ void tela_configuracao()
 			}
 			if (click)
 			{
+				click = false;
 				if (principal)
 				{
 					switch (estado)
 					{
+					case 4:
+						inicia_script("run_camera_config.bat");
+						sair = true;
+						break;
 					case 5:
 						sair = true;
 						break;
 					default:
+						principal = false;
 						break;
 					}
 				}
 				else
 				{
-					switch (estado_secundario)
+					switch (estado)
 					{
+					case 1:
+						if (estado_secundario == 1) escreve_arquivo("1", "scripts/tipo_controle.txt");
+						else if (estado_secundario == 2) escreve_arquivo("2", "scripts/tipo_controle.txt");
+						else escreve_arquivo("3", "scripts/tipo_controle.txt");
+						sair = true;
+						break;
 					default:
+						principal = false;
 						break;
 					}
 				}
@@ -670,6 +725,21 @@ void tela_configuracao()
 		}
 	}
 }
+
+void escreve_arquivo(string conteudo, string nome_arquivo)
+{
+	ofstream arquivo_txt(nome_arquivo);
+	if (arquivo_txt.is_open())
+	{
+		arquivo_txt << conteudo;
+		arquivo_txt.close();
+	}
+	else
+	{
+		fprintf(stderr, "erro ao escrever no arquivo \n");
+	}
+}
+
 
 void escreve_texto(vector<string> opcoes, int escolhido, int tipo)
 {
