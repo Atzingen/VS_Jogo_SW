@@ -64,8 +64,12 @@ ALLEGRO_BITMAP *remote = NULL;
 ALLEGRO_AUDIO_STREAM *musica = NULL;		// TODO
 ALLEGRO_SAMPLE *som_setup;
 ALLEGRO_SAMPLE *som_fim;
+ALLEGRO_SAMPLE *som_saber_on;
 ALLEGRO_SAMPLE *som_perdeu;
 ALLEGRO_SAMPLE *som_bolinha_parede;
+ALLEGRO_SAMPLE *som_tiro;
+ALLEGRO_SAMPLE *som_sabre_defesa;
+ALLEGRO_SAMPLE *toma_tiro;
 ALLEGRO_SAMPLE *som_bolinha_barra;
 ALLEGRO_SAMPLE *som_aplauso;
 ALLEGRO_SAMPLE *som_abertura;
@@ -84,9 +88,9 @@ int main(int argc, char **argv)
 	srand(time(NULL));
 	if (inicializar_allegro())
 	{
-		//cutscene(1);
+		cutscene(1);
 		inicio_setup();
-		//cutscene(3);
+		cutscene(3);
 	}
 	the_end_allegro();
 	return 0;
@@ -94,6 +98,7 @@ int main(int argc, char **argv)
 
 void jogo()
 {
+	al_stop_sample(&id);
 	int valor_lido = 1;
 	string line;
 	ifstream myfile("scripts/tipo_controle.txt");
@@ -180,6 +185,7 @@ void jogo()
 			{
 			case ALLEGRO_KEY_L:
 				sabre_ligado = !sabre_ligado;
+				al_play_sample(som_saber_on, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, &id);
 				break;
 			case ALLEGRO_KEY_A:
 				esquerda = true;
@@ -286,6 +292,7 @@ void jogo()
 			{
 				laser_atirar = false;
 				fprintf(stderr, "novo tiro: ");
+				al_play_sample(som_tiro, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, &id);
 				for (int i = 0; i < max_tiros_tela; i++)
 				{
 					if (pos_tiros[0][i] == -1)
@@ -317,13 +324,18 @@ void jogo()
 					{
 						if (sabre_defesa(pos_tiros[2][i], pos_tiros[3][i], sabre_x, sabre_y, sabre_theta))
 						{
+							al_play_sample(som_sabre_defesa, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, &id);
 							pontos++;
 							if (pontos % 10 == 0)
 								if (vida <= 90)
 									vida =+ 10;
 						}
 						else
+						{
+							al_play_sample(toma_tiro, 1.0, 0.0, 1.0, ALLEGRO_PLAYMODE_ONCE, &id);
 							vida = vida - 10;
+						}
+							
 						for (int k = 0; k < 7; k++)
 							pos_tiros[k][i] = -1;
 					}
@@ -813,6 +825,7 @@ void inicio_setup()
 		{
 		case 1:
 			jogo();
+			cutscene(2);
 			break;
 		case 2:
 			tela_configuracao();
@@ -964,6 +977,38 @@ int inicializar_allegro()
 
 	if (!som_bolinha_parede) {
 		printf("Audio clip sample not loaded! pinga_parede.wav \n");
+		return -1;
+	}
+
+	//som_saber_on
+	som_saber_on = al_load_sample("sons/som_saber_on.wav");
+
+	if (!som_saber_on) {
+		printf("Audio clip sample not loaded! som_saber_on.wav \n");
+		return -1;
+	}
+
+	//som_tiro
+	som_tiro = al_load_sample("sons/som_tiro.wav");
+
+	if (!som_tiro) {
+		printf("Audio clip sample not loaded! som_tiro.wav \n");
+		return -1;
+	}
+
+	//toma_tipo
+	toma_tiro = al_load_sample("sons/toma_tiro.wav");
+
+	if (!toma_tiro) {
+		printf("Audio clip sample not loaded! toma_tiro.wav \n");
+		return -1;
+	}
+
+	//som_sabre_defesa
+	som_sabre_defesa = al_load_sample("sons/som_sabre_defesa.wav");
+
+	if (!som_sabre_defesa) {
+		printf("Audio clip sample not loaded! som_sabre_defesa.wav \n");
 		return -1;
 	}
 

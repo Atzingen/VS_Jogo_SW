@@ -79,7 +79,8 @@ void setup()
     // initialize device
     mpu.initialize();
     pinMode(INTERRUPT_PIN, INPUT);
-    pinMode(PIN_BOTAO, INPUT);
+    pinMode(PIN_BOTAO,INPUT_PULLUP);
+    Serial.println("iniciando programa");
 
     devStatus = mpu.dmpInitialize();
 
@@ -105,6 +106,8 @@ void setup()
         // get expected DMP packet size for later comparison
         packetSize = mpu.dmpGetFIFOPacketSize();
     }
+    delay(5000);
+    Serial.println("fim inicializacao - loop");
 }
 
 void loop()
@@ -117,9 +120,14 @@ void loop()
     {
         // Resto do codigo aqui
 
-        if (digitalRead(PIN_BOTAO))
+        if (digitalRead(PIN_BOTAO) == LOW)
         {
             Serial.println("SABRE");
+            while ( digitalRead(PIN_BOTAO) == LOW )
+            {
+              delay(1);
+            }
+            delay(10);
         }
     }
 

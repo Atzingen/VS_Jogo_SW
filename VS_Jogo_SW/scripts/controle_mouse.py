@@ -35,6 +35,7 @@ with open("scripts/serial_escolhida.txt") as f:
     print porta
 try:
     if 'COM' in porta and porta != 'COM1':
+        print porta
         s = serial.Serial(port=porta,baudrate=115200)
         s.close()
         if s.is_open:
@@ -45,8 +46,17 @@ try:
             if win32api.GetAsyncKeyState(ord('Q')):
                 sys.exit()
             linha = s.readline()
-            pitch, roll, yaw = linha.split(',')
-            print roll
-            win32api.SetCursorPos((int(L_tela/2.0+(int(L/180.0))*int(float(roll))),int(H_tela/2.0)))
+            if 'SABRE' in linha:
+                print "ligar sabre"
+            else:
+                try:
+                    dados = linha.split('|')
+                    ypr = dados[2]
+                    _, pitch, roll, yaw = ypr.split(',')
+                    print roll
+                    win32api.SetCursorPos((int(L_tela/2.0+(int(L/180.0))*int(float(roll))),int(H_tela/2.0)))
+                except:
+                    print 'except', dados
 except:
     pass
+print "fim do programa"
